@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+use Illuminate\Support\Str;
+
 /**
  * @property string $id
  * @property string $user_id
@@ -21,11 +23,16 @@ class Order extends Model
 {
     use HasFactory;
 
+    protected $table = 'orders';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'user_id',
+        'items',
+        'tags',
         'status',
         'total',
-        'items',
     ];
 
     protected $casts = [
@@ -36,5 +43,16 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = (string) Str::uuid();
+            }
+        });
     }
 }
