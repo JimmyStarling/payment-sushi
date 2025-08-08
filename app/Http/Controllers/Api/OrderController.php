@@ -7,8 +7,16 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 
+use App\Application\UseCases\Order\CreateOrderUseCase;
+use App\Application\UseCases\Order\GetOrdersUseCase;
+
 class OrderController extends Controller
 {
+    public function __construct(
+        private CreateOrderUseCase $createOrderUseCase,
+        private GetOrdersUseCase $getOrdersUseCase
+    ){}
+
     /**
     * @OA\Get(
     *     path="/api/orders",
@@ -20,7 +28,7 @@ class OrderController extends Controller
     **/
     public function index()
     {
-        $orders = Order::latest()->paginate(10); // Ordena por mais recente e pagina
+        $orders = $this->getOrdersUseCase->execute();
         return response()->json($orders);
     }
 
@@ -34,21 +42,16 @@ class OrderController extends Controller
 
     public function store(Request $request) {
         $data = $request->validate([
-            'status' => 'required|string',
+            'user_id' => 'required|integer|exists:users,id',
             'items' => 'required|array',
+            'tags' => 'array',
+            'status' => 'required|string',
             'total' => 'required|numeric',
-            'tags' => 'nullable|array',
         ]);
 
-        $order = Order::create([
-            'user_id' => Auth::id(), // pega o ID do usuário autenticado
-            'status' => $data['status'],
-            'items' => $data['items'],
-            'total' => $data['total'],
-            'tags' => $data['tags'] ?? [],
-        ]);
+        $this->createOrderUseCase->execute($data);
 
-        return response()->json($order, 201);
+        return response()->json(['message' => 'Pedido criado com sucesso!']);
     }
 
     /**
